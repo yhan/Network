@@ -20,13 +20,20 @@ Console.WriteLine("Server listening on: {0}:{1}", ep.Address, ep.Port);
 // keep running
 while (true)
 {
-    var sender = listener.AcceptTcpClient();
-    // streamToMessage - discussed later
-    string request = Helper.StreamToMessage(sender.GetStream());
-    if (request != null)
+    try
     {
-        string responseMessage = MessageHandler(request);
-        SendMessage(responseMessage, sender);
+        var sender = listener.AcceptTcpClient();
+        // streamToMessage - discussed later
+        string request = await Helper.StreamToMessage(sender.GetStream());
+        if (request != null)
+        {
+            string responseMessage = MessageHandler(request);
+            SendMessage(responseMessage, sender);
+        }
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e);
     }
 }
 
@@ -39,6 +46,6 @@ void SendMessage(string message, TcpClient client)
 
 string MessageHandler(string message)
 {
-    Console.WriteLine($"[{loop++}] Received message, StrLength={message.Length} bytes={Helper.SizeInBytes(message)}" );
+    Console.WriteLine($"[{loop++}] Received message, StrLength={message.Length} bytes={Helper.SizeInBytes(message)/1024/1024} MB" );
     return Helper.StringWithSizeInMegaByte('s', 1);//"Thank a lot for the message!";
 }

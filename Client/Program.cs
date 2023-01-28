@@ -7,11 +7,11 @@ long loop = 0;
 string requestMessage = Helper.StringWithSizeInMegaByte('c', 1) ;
 while (true)
 {
-    string reply = SendMessage(requestMessage);
-    Console.WriteLine($"[{loop++}] response StrLength={reply.Length} bytes={Helper.SizeInBytes(reply)}");
+    string reply = await SendMessage(requestMessage);
+    Console.WriteLine($"[{loop++}] response StrLength={reply.Length} bytes={Helper.SizeInBytes(reply) / 1024 / 1024}  MB");
 }
 
-string SendMessage(string message)
+async Task<string> SendMessage(string message)
 {
     string response = "";
     try
@@ -27,7 +27,7 @@ string SendMessage(string message)
 
             // Message sent!  Wait for the response stream of bytes...
             // streamToMessage - discussed later
-            response = Helper.StreamToMessage(stream);
+            response = await Helper.StreamToMessage(stream);
         }
         client.Close();
     }

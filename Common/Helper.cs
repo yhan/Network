@@ -26,22 +26,34 @@ public static class Helper
 
     public static string StringWithSizeInMegaByte(char c, int unitOfMegaBytes)
     {
-        return new string(Enumerable.Repeat(c, unitOfMegaBytes * 2 * 1024 * 1024).ToArray());
+        return new string(Enumerable.Repeat(c, unitOfMegaBytes * 1024 * 1024 / 2).ToArray());
     }
 
-    public static string StreamToMessage(Stream stream)
+    public static async Task<string> StreamToMessage(Stream stream)
     {
-        // size bytes have been fixed to 4
-        byte[] sizeBytes = new byte[4];
-        // read the content length
-        stream.Read(sizeBytes, 0, 4);
-        int messageSize = BitConverter.ToInt32(sizeBytes, 0);
-        // create a buffer of the content length size and read from the stream
-        byte[] messageBytes = new byte[messageSize];
-        stream.Read(messageBytes, 0, messageSize);
-        // convert message byte array to the message string using the encoding
-        string message = encoding.GetString(messageBytes);
-        return message;
+        var task = Task.Run(()=>
+        {
+            // size bytes have been fixed to 4
+            byte[] sizeBytes = new byte[4];
+            // read the content length
+            stream.Read(sizeBytes, 0, 4);
+            int messageSize = BitConverter.ToInt32(sizeBytes, 0);
+            // create a buffer of the content length size and read from the stream
+            byte[] messageBytes = new byte[messageSize];
+            stream.Read(messageBytes, 0, messageSize);
+            // convert message byte array to the message string using the encoding
+            string message = encoding.GetString(messageBytes);
+            return message;
+        });
+
+        if (await Task.WhenAny(task, Task.Delay(1000)) == task)
+        {
+            return task.Result;
+        }
+        else
+        {
+            return "timeout";
+        }
     }
     public static int SizeInBytes(string s)
     {
