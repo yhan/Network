@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Sockets;
+using System.Text;
 
 namespace Common;
 
@@ -58,6 +59,34 @@ public static class Helper
     public static int SizeInBytes(string s)
     {
         return 20 + (s.Length / 2) * 4;
+    }
+
+
+    public static async Task<string> ClientSendMessage(string message)
+    {
+        string response = "";
+        try
+        {
+            TcpClient client = new TcpClient("127.0.0.1", 8081);// Create a new connection  
+            client.NoDelay = true;// please check TcpClient for more optimization
+            // messageToByteArray- discussed later
+            byte[] messageBytes = Helper.MessageToByteArray(message);
+
+            using (NetworkStream stream = client.GetStream())
+            {
+                stream.Write(messageBytes, 0, messageBytes.Length);
+
+                // Message sent!  Wait for the response stream of bytes...
+                // streamToMessage - discussed later
+                response = await Helper.StreamToMessage(stream);
+            }
+            client.Close();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+        return response;
     }
 
 }

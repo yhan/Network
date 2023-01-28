@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddQuartz(q => {
-        q.UseMicrosoftDependencyInjectionScopedJobFactory();
+        q.UseMicrosoftDependencyInjectionJobFactory();
         // Just use the name of your job that you created in the Jobs folder.
         var jobKey = new JobKey("SendEmailJob");
         q.AddJob<SendToServerJob>(opts => opts.WithIdentity(jobKey));
