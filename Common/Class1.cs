@@ -6,7 +6,7 @@ public static class Helper
 {
     // using UTF8 encoding for the messages
     static Encoding encoding = Encoding.UTF8;
-    public static byte[] messageToByteArray(string message)
+    public static byte[] MessageToByteArray(string message)
     {
         // get the size of original message
         byte[] messageBytes = encoding.GetBytes(message);
@@ -24,7 +24,7 @@ public static class Helper
         return completemsg;
     }
 
-    public static string streamToMessage(Stream stream)
+    public static string StreamToMessage(Stream stream)
     {
         // size bytes have been fixed to 4
         byte[] sizeBytes = new byte[4];
@@ -36,11 +36,6 @@ public static class Helper
         stream.Read(messageBytes, 0, messageSize);
         // convert message byte array to the message string using the encoding
         string message = encoding.GetString(messageBytes);
-        string result = null;
-        foreach (var c in message)
-            if (c != '\0')
-                result += c;
-
-        return result;
+        return message;
     }
 }
