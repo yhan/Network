@@ -14,14 +14,19 @@ public static class Helper
         // add content length bytes to the original size
         int completeSize = messageSize + 4;
         // create a buffer of the size of the complete message size
-        byte[] completemsg = new byte[completeSize];
+        byte[] completeMsg = new byte[completeSize];
 
         // convert message size to bytes
         byte[] sizeBytes = BitConverter.GetBytes(messageSize);
         // copy the size bytes and the message bytes to our overall message to be sent 
-        sizeBytes.CopyTo(completemsg, 0);
-        messageBytes.CopyTo(completemsg, 4);
-        return completemsg;
+        sizeBytes.CopyTo(completeMsg, 0);
+        messageBytes.CopyTo(completeMsg, 4);
+        return completeMsg;
+    }
+
+    public static string StringWithSizeInMegaByte(char c, int unitOfMegaBytes)
+    {
+        return new string(Enumerable.Repeat(c, unitOfMegaBytes * 2 * 1024 * 1024).ToArray());
     }
 
     public static string StreamToMessage(Stream stream)
@@ -38,4 +43,9 @@ public static class Helper
         string message = encoding.GetString(messageBytes);
         return message;
     }
+    public static int SizeInBytes(string s)
+    {
+        return 20 + (s.Length / 2) * 4;
+    }
+
 }

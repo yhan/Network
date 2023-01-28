@@ -1,12 +1,14 @@
 ﻿using System.Net.Sockets;
 using Common;
 
+
+
 long loop = 0;
-string requestMessage = new string(Enumerable.Repeat('a', 1024 * 1024).ToArray()) ;
+string requestMessage = Helper.StringWithSizeInMegaByte('c', 1) ;
 while (true)
 {
-    string responseMessage = SendMessage(requestMessage);
-    Console.WriteLine($"[{loop++}] {responseMessage}");
+    string reply = SendMessage(requestMessage);
+    Console.WriteLine($"[{loop++}] response StrLength={reply.Length} bytes={Helper.SizeInBytes(reply)}");
 }
 
 string SendMessage(string message)

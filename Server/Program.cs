@@ -26,21 +26,19 @@ while (true)
     if (request != null)
     {
         string responseMessage = MessageHandler(request);
-        sendMessage(responseMessage, sender);
+        SendMessage(responseMessage, sender);
     }
 }
 
-
-void sendMessage(string message, TcpClient client)
+void SendMessage(string message, TcpClient client)
 {
     // messageToByteArray- discussed later
-    byte[] bytes = Helper.MessageToByteArray(message);
+    byte[] bytes =  Helper.MessageToByteArray(message);
     client.GetStream().Write(bytes, 0, bytes.Length);
 }
 
 string MessageHandler(string message)
 {
-    var bytesLength = message.Length * 2;
-    Console.WriteLine($"[{loop++}] Received message, len = {bytesLength} " );
-    return "Thank a lot for the message!";
+    Console.WriteLine($"[{loop++}] Received message, StrLength={message.Length} bytes={Helper.SizeInBytes(message)}" );
+    return Helper.StringWithSizeInMegaByte('s', 1);//"Thank a lot for the message!";
 }
