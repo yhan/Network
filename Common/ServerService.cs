@@ -2,20 +2,27 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Common;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+
+namespace Common;
+
+
 
 public class ServerService : BackgroundService
 {
     private readonly Perf perf;
+    private readonly Config config;
     static long loop = 0;
     private TcpListener listener;
     static Encoding encoding = Encoding.UTF8;
-    private readonly string thisRegion;
 
-    public ServerService(Perf perf, IConfiguration config)
+    public ServerService(Perf perf, IOptions<Config> appConfig)
     {
         this.perf = perf;
-        thisRegion = config["region"];
+        this.config = appConfig.Value;
+        
+        Debug.Assert(config.Server.ListenOnPort.HasValue);
     }
     
     public override Task StartAsync(CancellationToken cancellationToken)
@@ -23,9 +30,9 @@ public class ServerService : BackgroundService
         Console.WriteLine("Server starting !");
         
         // IP Address to listen on. Loopback in this case
-        IPAddress ipAddr = IPAddress.Loopback;
+        IPAddress ipAddr = IPAddress.Loopback; // TODO IPv6 ?
         // Port to listen on
-        int port = 8081;
+        int port = config.Server.ListenOnPort.Value; // TODO move to Config
         // Create a network endpoint
         IPEndPoint ep = new IPEndPoint(ipAddr, port);
         // Create and start a TCP listener
@@ -49,13 +56,13 @@ public class ServerService : BackgroundService
                 string request = await StreamToMessage(sender.GetStream());
                 var region = request.Split(':')[0];
                 Console.WriteLine($"[{loop++}][{region}] Received message, StrLength={request.Length} bytes={Helper.SizeInBytes(request) / 1024 / 1024} MB");
-                perf.RecordValue(Stopwatch.GetTimestamp() - inboundStart, region, thisRegion);
+                perf.RecordValue(Stopwatch.GetTimestamp() - inboundStart, region, config.CurrentRegion);
                 
                 //OUTBOUND
                 long outBoundStart = Stopwatch.GetTimestamp();
                 string responseMessage = Helper.StringWithSizeInMegaByte('s', 1);
                 SendMessage(responseMessage, sender);
-                perf.RecordValue(Stopwatch.GetTimestamp() - outBoundStart, thisRegion, region);
+                perf.RecordValue(Stopwatch.GetTimestamp() - outBoundStart, config.CurrentRegion, region);
             }
             catch (Exception e)
             {
@@ -64,9 +71,16 @@ public class ServerService : BackgroundService
         }
     }
 
-    public static async Task<string> StreamToMessage(Stream stream)
+    private static async Task<string> StreamToMessage(Stream stream)
     {
+        var tokenSource2 = new CancellationTokenSource();
+        CancellationToken ct = tokenSource2.Token;
+        tokenSource2.CancelAfter(1_000);
+
         var task = Task.Run(() => {
+            // Were we already canceled?
+            ct.ThrowIfCancellationRequested();
+            
             // size bytes have been fixed to 4
             byte[] sizeBytes = new byte[4];
             // read the content length
@@ -78,7 +92,7 @@ public class ServerService : BackgroundService
             // convert message byte array to the message string using the encoding
             string message = encoding.GetString(messageBytes);
             return message;
-        });
+        }, ct);
 
         if (await Task.WhenAny(task, Task.Delay(1000)) == task)
         {
@@ -90,7 +104,6 @@ public class ServerService : BackgroundService
         }
     }
     
-
     void SendMessage(string message, TcpClient client)
     {
         // messageToByteArray- discussed later
