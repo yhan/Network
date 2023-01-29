@@ -30,7 +30,7 @@ public class ServerService : BackgroundService
         // IP Address to listen on. Loopback in this case
         IPAddress ipAddr = IPAddress.Loopback; // TODO IPv6 ?
         // Port to listen on
-        int port = config.Server.ListenOnPort.Value; // TODO move to Config
+        int port = config.Server.ListenOnPort.Value;
         // Create a network endpoint
         IPEndPoint ep = new IPEndPoint(ipAddr, port);
         // Create and start a TCP listener
@@ -53,18 +53,21 @@ public class ServerService : BackgroundService
                 long inboundStart = Stopwatch.GetTimestamp();
                 string request = await StreamToMessage(sender.GetStream());
                 var region = request.Split(':')[0];
-                Console.WriteLine($"[{loop++}][{region}] Received message, StrLength={request.Length} bytes={Helper.SizeInBytes(request) / 1024 / 1024} MB");
+                Console.WriteLine($"[{loop++}][{config.CurrentRegion}][AS SERVER] Received message from [{region}], StrLength={request.Length} bytes={Helper.SizeInBytes(request) / 1024 / 1024} MB");
                 perf.RecordValue(Stopwatch.GetTimestamp() - inboundStart, region, config.CurrentRegion);
                 
                 //OUTBOUND
+                string responseMessage = $"{config.CurrentRegion}:{Helper.StringWithSizeInMegaByte('s', 1)}";
+                byte[] bytes = Helper.MessageToByteArray(responseMessage);
+                
                 long outBoundStart = Stopwatch.GetTimestamp();
-                string responseMessage = Helper.StringWithSizeInMegaByte('s', 1);
-                SendMessage(responseMessage, sender);
+                await sender.GetStream().WriteAsync(bytes, 0, bytes.Length, stoppingToken);
                 perf.RecordValue(Stopwatch.GetTimestamp() - outBoundStart, config.CurrentRegion, region);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine($"Server [{config.CurrentRegion}] Down! {e}");
+                return;
             }
         }
     }
@@ -76,8 +79,6 @@ public class ServerService : BackgroundService
         var task = Task.Run(() => {
             // Were we already canceled?
             ct.ThrowIfCancellationRequested();
-            
-            Console.WriteLine("try read ... ");
             
             // size bytes have been fixed to 4
             byte[] sizeBytes = new byte[4];
@@ -100,15 +101,8 @@ public class ServerService : BackgroundService
         {
             tokenSource2.Cancel();
             Console.WriteLine("Cancelled !!!!! ");
-            return "timeout";
+            return "timeout:timeout";
         }
-    }
-    
-    void SendMessage(string message, TcpClient client)
-    {
-        // messageToByteArray- discussed later
-        byte[] bytes = Helper.MessageToByteArray(message);
-        client.GetStream().Write(bytes, 0, bytes.Length);
     }
 
 }
