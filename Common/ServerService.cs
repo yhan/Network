@@ -7,15 +7,13 @@ using Microsoft.Extensions.Options;
 
 namespace Common;
 
-
-
 public class ServerService : BackgroundService
 {
     private readonly Perf perf;
     private readonly Config config;
-    static long loop = 0;
+    private static long loop = 0;
     private TcpListener listener;
-    static Encoding encoding = Encoding.UTF8;
+    private static readonly Encoding encoding = Encoding.UTF8;
 
     public ServerService(Perf perf, IOptions<Config> appConfig)
     {
@@ -75,11 +73,11 @@ public class ServerService : BackgroundService
     {
         var tokenSource2 = new CancellationTokenSource();
         CancellationToken ct = tokenSource2.Token;
-        tokenSource2.CancelAfter(1_000);
-
         var task = Task.Run(() => {
             // Were we already canceled?
             ct.ThrowIfCancellationRequested();
+            
+            Console.WriteLine("try read ... ");
             
             // size bytes have been fixed to 4
             byte[] sizeBytes = new byte[4];
@@ -100,6 +98,8 @@ public class ServerService : BackgroundService
         }
         else
         {
+            tokenSource2.Cancel();
+            Console.WriteLine("Cancelled !!!!! ");
             return "timeout";
         }
     }

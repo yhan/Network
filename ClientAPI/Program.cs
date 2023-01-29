@@ -10,7 +10,8 @@ var config = builder.Configuration.GetSection("Config").Get<Config>();
 //builder.Services.AddSingleton<Config>(config);
 builder.Services.Configure<Config>(builder.Configuration.GetSection("Config"));
 
-if(config.Server != null)
+var isServer = config.Server != null;
+if(isServer)
 {
     // As server
     builder.Services.AddHostedService<ServerService>();
@@ -21,7 +22,8 @@ if(config.Server != null)
     });
 }
 
-if (config.Client != null)
+var isClient = config.Client != null;
+if (isClient)
 {
     // As client
     builder.Services
@@ -44,5 +46,7 @@ if (config.Client != null)
 }
 
 var app = builder.Build();
-//app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World!");
+if(isServer)
+    app.MapControllers();
 app.Run();
