@@ -2,7 +2,6 @@ using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services
     .AddQuartz(q => {
         q.UseMicrosoftDependencyInjectionJobFactory();
@@ -12,12 +11,12 @@ builder.Services
 
         q.AddTrigger(opts => {
             //var every5Min = "0 0/5 * * * ?";
-            var every2Sec = "0/2 * * * * ?";// every sec "* * * ? * *";
+            var cron = "0/10 * * * * ?";// every sec "* * * ? * *";
             opts
                 .ForJob(jobKey)
                 .WithIdentity("SendToServerJob-trigger")
                 //This Cron interval can be described as "run every minute" (when second is zero)
-                .WithCronSchedule("0/2 * * * * ?");
+                .WithCronSchedule(cron);
         });
     });
 
