@@ -50,11 +50,10 @@ public class ServerService : BackgroundService
                 var sender = await listener.AcceptTcpClientAsync(stoppingToken);
 
                 //INBOUND
-                long inboundStart = Stopwatch.GetTimestamp();
-                string request = await StreamToMessage(sender.GetStream());
+                (string request, long inboundTicks) = await StreamToMessage(sender.GetStream());
                 var region = request.Split(':')[0];
                 Console.WriteLine($"[{loop++}][{config.CurrentRegion}][AS SERVER] Received message from [{region}], StrLength={request.Length} bytes={Helper.SizeInBytes(request) / 1024 / 1024} MB");
-                perf.RecordValue(Stopwatch.GetTimestamp() - inboundStart, region, config.CurrentRegion);
+                perf.RecordValue(inboundTicks, region, config.CurrentRegion);
                 
                 //OUTBOUND
                 string responseMessage = $"{config.CurrentRegion}:{Helper.StringWithSizeInMegaByte('s', 1)}";
@@ -72,13 +71,15 @@ public class ServerService : BackgroundService
         }
     }
 
-    private static async Task<string> StreamToMessage(Stream stream)
+    private static async Task<(string message, long ticks)> StreamToMessage(Stream stream)
     {
         var tokenSource2 = new CancellationTokenSource();
         CancellationToken ct = tokenSource2.Token;
         var task = Task.Run(() => {
             // Were we already canceled?
             ct.ThrowIfCancellationRequested();
+            
+            long outBoundStart = Stopwatch.GetTimestamp();
             
             // size bytes have been fixed to 4
             byte[] sizeBytes = new byte[4];
@@ -88,9 +89,12 @@ public class ServerService : BackgroundService
             // create a buffer of the content length size and read from the stream
             byte[] messageBytes = new byte[messageSize];
             stream.Read(messageBytes, 0, messageSize);
+           
+            var ticks = Stopwatch.GetTimestamp() - outBoundStart;
+            
             // convert message byte array to the message string using the encoding
             string message = encoding.GetString(messageBytes);
-            return message;
+            return (message, ticks);
         }, ct);
 
         if (await Task.WhenAny(task, Task.Delay(1000)) == task)
@@ -101,7 +105,8 @@ public class ServerService : BackgroundService
         {
             tokenSource2.Cancel();
             Console.WriteLine("Cancelled !!!!! ");
-            return "timeout:timeout";
+            var timeoutTicks = TimeSpan.FromSeconds(1).Ticks;
+            return ("timeout:timeout", timeoutTicks);
         }
     }
 
